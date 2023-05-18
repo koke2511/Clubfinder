@@ -1,0 +1,425 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.time.LocalDate;
+import java.util.ArrayList;
+
+public class DiscotecaApp {
+    
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            ClubFrame clubFrame = new ClubFrame();
+            clubFrame.setVisible(true);
+        });
+        
+    }
+}
+
+class ClubFrame extends JFrame {
+
+    private final JPanel clubPanel;
+    private final JButton newUserButton;
+    private final JButton newClubUserButton;
+    private final JButton showInfoButton;
+    private final JButton deleteClubButton;
+    private final JButton updateClubInfoButton;
+    private final JButton searchClubButton;
+    private final ArrayList<Club> clubs;
+    private final ArrayList<User> users;
+    private final JButton returnButton;
+
+    public ClubFrame() {
+        setTitle("Aplicación para Discotecas");
+        setSize(360, 640);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        getContentPane().setBackground(Color.DARK_GRAY);
+
+        clubs = new ArrayList<>();
+        users = new ArrayList<>();
+
+        clubPanel = new JPanel();
+        clubPanel.setLayout(new BoxLayout(clubPanel, BoxLayout.Y_AXIS));
+        clubPanel.setBackground(Color.DARK_GRAY);
+        add(clubPanel, BorderLayout.CENTER);
+
+        newUserButton = new JButton("Crear usuario normal");
+        newUserButton.addActionListener(new NewUserAction(false));
+        newUserButton.setMaximumSize(new Dimension(150, 50));
+        newUserButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        clubPanel.add(newUserButton);
+
+        newClubUserButton = new JButton("Crear usuario de discoteca");
+        newClubUserButton.addActionListener(new NewUserAction(true));
+        newClubUserButton.setMaximumSize(new Dimension(200, 50));
+        newClubUserButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        clubPanel.add(newClubUserButton);
+
+        showInfoButton = new JButton("Mostrar información");
+        showInfoButton.addActionListener(new ShowInfoAction());
+        showInfoButton.setMaximumSize(new Dimension(150, 50));
+        showInfoButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        clubPanel.add(showInfoButton);
+
+        deleteClubButton = new JButton("Eliminar discoteca");
+        deleteClubButton.addActionListener(new DeleteClubAction());
+        deleteClubButton.setMaximumSize(new Dimension(150, 50));
+        deleteClubButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        clubPanel.add(deleteClubButton);
+
+        updateClubInfoButton = new JButton("Actualizar información del club");
+        updateClubInfoButton.addActionListener(new UpdateClubInfoAction());
+        updateClubInfoButton.setMaximumSize(new Dimension(200, 50));
+        updateClubInfoButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        clubPanel.add(updateClubInfoButton);
+
+        searchClubButton = new JButton("Buscar discoteca por nombre");
+        searchClubButton.addActionListener(new SearchClubAction());
+        searchClubButton.setMaximumSize(new Dimension(200, 50));
+        searchClubButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        clubPanel.add(searchClubButton);
+
+        returnButton = new JButton("Volver");
+        returnButton.addActionListener(new ReturnAction());
+        returnButton.setMaximumSize(new Dimension(150, 50));
+        returnButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        displayOptions();
+        displayClubs();
+    }
+    private void displayOptions() {
+        
+        clubPanel.removeAll();
+        clubPanel.add(newUserButton);
+        clubPanel.add(newClubUserButton);
+        clubPanel.revalidate();
+        clubPanel.repaint();
+        
+    }
+
+    private void displayUserOptions() {
+        
+        clubPanel.removeAll();
+        clubPanel.add(showInfoButton);
+
+        User currentUser = users.get(users.size() - 1); // Obtener el último usuario agregado
+        if (currentUser.isClubUser()) {
+            clubPanel.add(deleteClubButton);
+            clubPanel.add(updateClubInfoButton);
+        } else {
+            clubPanel.add(searchClubButton);
+        }
+
+        clubPanel.add(returnButton);
+
+        clubPanel.revalidate();
+        clubPanel.repaint();
+        
+    }
+
+    private class ReturnAction implements ActionListener {
+        
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            users.remove(users.size() - 1); // Eliminar el último usuario agregado
+            displayOptions();
+            
+        }
+    }
+
+    private void displayClubs() {
+        
+        clubs.forEach(club -> {
+            JLabel clubLabel = new JLabel(club.getName());
+            clubLabel.setForeground(Color.WHITE);
+            clubLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            clubPanel.add(clubLabel);
+            
+        });
+    }
+
+    private class NewUserAction implements ActionListener {
+        
+        private final boolean isClubUser;
+
+        public NewUserAction(boolean isClubUser) {
+            this.isClubUser = isClubUser;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            
+            JTextField nameField = new JTextField();
+            JTextField birthYearField = new JTextField();
+
+            Object[] fields = {
+                    "Nombre:", nameField,
+                    "Año de nacimiento:", birthYearField
+            };
+
+            int option = JOptionPane.showConfirmDialog(ClubFrame.this, fields, "Crear usuario", JOptionPane.OK_CANCEL_OPTION);
+
+            if (option == JOptionPane.OK_OPTION) {
+                String name = nameField.getText();
+                int birthYear = Integer.parseInt(birthYearField.getText());
+
+                if (isUserOver18(birthYear)) {
+                    User user = new User(name, birthYear, isClubUser);
+                    users.add(user);
+                    JOptionPane.showMessageDialog(ClubFrame.this, "Usuario creado con éxito", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+
+                    if (isClubUser) {
+                        displayUserOptions();
+                        createClub();
+                    } else {
+                        displayUserOptions();
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(ClubFrame.this, "Debes tener al menos 18 años para crear un usuario", "Error", JOptionPane.ERROR_MESSAGE);
+                
+                }
+            }
+        }
+
+        private boolean isUserOver18(int birthYear) {
+            
+            int currentYear = LocalDate.now().getYear();
+            int age = currentYear - birthYear;
+            return age >= 18;
+            
+        }
+
+        private void createClub() {
+            
+            JTextField clubNameField = new JTextField();
+            JTextField clubLocationField = new JTextField();
+            JTextField clubOpeningTimeField = new JTextField();
+            JTextField clubTicketPriceField = new JTextField();
+            JTextField clubDrinkPriceField = new JTextField();
+
+            Object[] clubFields = {
+                    "Nombre:", clubNameField,
+                    "Ubicación:", clubLocationField,
+                    "Hora de apertura:", clubOpeningTimeField,
+                    "Precio de entrada:", clubTicketPriceField,
+                    "Precio de copa:", clubDrinkPriceField
+            };
+
+            int clubOption = JOptionPane.showConfirmDialog(ClubFrame.this, clubFields, "Crear discoteca", JOptionPane.OK_CANCEL_OPTION);
+
+            if (clubOption == JOptionPane.OK_OPTION) {
+                String clubName = clubNameField.getText();
+                String clubLocation = clubLocationField.getText();
+                String clubOpeningTime = clubOpeningTimeField.getText();
+                int clubTicketPrice = Integer.parseInt(clubTicketPriceField.getText());
+                int clubDrinkPrice = Integer.parseInt(clubDrinkPriceField.getText());
+
+                Club club = new Club(clubName, clubLocation, clubOpeningTime, clubTicketPrice, clubDrinkPrice);
+                clubs.add(club);
+                displayClubs();
+                
+            }
+        }
+    }
+
+    private class ShowInfoAction implements ActionListener {
+        
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (users.isEmpty()) {
+                JOptionPane.showMessageDialog(ClubFrame.this, "Necesitas crear un usuario para ver la información de las discotecas", "Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                clubs.forEach(club -> {
+                    String info = String.format("Nombre: %s%nUbicación: %s%nHora de apertura: %s%nPrecio de entrada: %d€%nPrecio de copa: %d€",
+                            club.getName(),
+                            club.getLocation(),
+                            club.getOpeningTime(),
+                            club.getTicketPrice(),
+                            club.getDrinkPrice());
+                    JOptionPane.showMessageDialog(ClubFrame.this, info, club.getName(), JOptionPane.INFORMATION_MESSAGE);
+                    
+                });
+            }
+        }
+    }
+
+    private class DeleteClubAction implements ActionListener {
+        
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JTextField clubNameField = new JTextField();
+            Object[] clubFields = {
+                    "Nombre del club a eliminar:", clubNameField
+            };
+            int clubOption = JOptionPane.showConfirmDialog(ClubFrame.this, clubFields, "Eliminar discoteca", JOptionPane.OK_CANCEL_OPTION);
+            if (clubOption == JOptionPane.OK_OPTION) {
+                String clubName = clubNameField.getText();
+                clubs.removeIf(club -> club.getName().equals(clubName));
+                displayClubs();
+                
+            }
+        }
+    }
+
+    private class UpdateClubInfoAction implements ActionListener {
+        
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JTextField clubNameField = new JTextField();
+            JTextField clubLocationField = new JTextField();
+            JTextField clubOpeningTimeField = new JTextField();
+            JTextField clubTicketPriceField = new JTextField();
+            JTextField clubDrinkPriceField = new JTextField();
+            Object[] clubFields = {
+                    "Nombre del club a actualizar:", clubNameField,
+                    "Nueva ubicación:", clubLocationField,
+                    "Nueva hora de apertura:", clubOpeningTimeField,
+                    "Nuevo precio de entrada:", clubTicketPriceField,
+                    "Nuevo precio de copa:", clubDrinkPriceField
+            };
+            int clubOption = JOptionPane.showConfirmDialog(ClubFrame.this, clubFields, "Actualizar información del club", JOptionPane.OK_CANCEL_OPTION);
+            if (clubOption == JOptionPane.OK_OPTION) {
+                String clubName = clubNameField.getText();
+                String clubLocation = clubLocationField.getText();
+                String clubOpeningTime = clubOpeningTimeField.getText();
+                int clubTicketPrice = Integer.parseInt(clubTicketPriceField.getText());
+                int clubDrinkPrice = Integer.parseInt(clubDrinkPriceField.getText());
+                for (Club club : clubs) {
+                    if (club.getName().equals(clubName)) {
+                        club.setLocation(clubLocation);
+                        club.setOpeningTime(clubOpeningTime);
+                        club.setTicketPrice(clubTicketPrice);
+                        club.setDrinkPrice(clubDrinkPrice);
+                        break;
+                    }
+                }
+                displayClubs();
+                
+            }
+        }
+    }
+
+    private class SearchClubAction implements ActionListener {
+        
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JTextField clubNameField = new JTextField();
+            Object[] clubFields = {
+                    "Nombre del club a buscar:", clubNameField
+            };
+            int clubOption = JOptionPane.showConfirmDialog(ClubFrame.this, clubFields, "Buscar discoteca por nombre", JOptionPane.OK_CANCEL_OPTION);
+            if (clubOption == JOptionPane.OK_OPTION) {
+                String clubName = clubNameField.getText();
+                Club foundClub = null;
+                for (Club club : clubs) {
+                    if (club.getName().equals(clubName)) {
+                        foundClub = club;
+                        break;
+                    }
+                }
+                if (foundClub != null) {
+                    String info = String.format("Nombre: %s%nUbicación: %s%nHora de apertura: %s%nPrecio de entrada: %d€%nPrecio de copa: %d€",
+                            foundClub.getName(),
+                            foundClub.getLocation(),
+                            foundClub.getOpeningTime(),
+                            foundClub.getTicketPrice(),
+                            foundClub.getDrinkPrice());
+                    JOptionPane.showMessageDialog(ClubFrame.this, info, "Información del club", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(ClubFrame.this, "No se encontró un club con ese nombre", "Error", JOptionPane.ERROR_MESSAGE);
+                
+                }
+            }
+        }
+    }
+}
+
+class Club {
+    
+    private String name;
+    private String location;
+    private String openingTime;
+    private int ticketPrice;
+    private int drinkPrice;
+    private JButton returnButton;
+    private JButton enterButton;
+    private JTextField usernameField;
+
+    public Club(String name, String location, String openingTime, int ticketPrice, int drinkPrice) {
+        
+        this.name = name;
+        this.location = location;
+        this.openingTime = openingTime;
+        this.ticketPrice = ticketPrice;
+        this.drinkPrice = drinkPrice;
+        
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getOpeningTime() {
+        return openingTime;
+    }
+
+    public void setOpeningTime(String openingTime) {
+        this.openingTime = openingTime;
+    }
+
+    public int getTicketPrice() {
+        return ticketPrice;
+    }
+
+    public void setTicketPrice(int ticketPrice) {
+        this.ticketPrice = ticketPrice;
+    }
+
+    int getDrinkPrice() {
+        return drinkPrice;
+    }
+
+    void setDrinkPrice(int drinkPrice) {
+        this.drinkPrice = drinkPrice;
+    }
+}
+
+class User {
+    
+    private final String name;
+    private final int birthYear;
+    private final boolean isClubUser;
+
+    public User(String name, int birthYear, boolean isClubUser) {
+        
+        this.name = name;
+        this.birthYear = birthYear;
+        this.isClubUser = isClubUser;
+        
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getBirthYear() {
+        return birthYear;
+    }
+
+    public boolean isClubUser() {
+        return isClubUser;
+    }
+    
+}
